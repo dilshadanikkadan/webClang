@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      #container {
+        display: flex;
+        column-gap: 10px;
+        align-items: center;
+      }
+
+      #console,
+      #editor {
+        width: 500px;
+        height: 450px;
+        border: 1px solid #000;
+        padding: 5px;
+        overflow: auto;
+      }
+
+      #console {
+        display: flex;
+        flex-direction: column;
+        row-gap: 10px;
+        color: #fff;
+        background-color: #000;
+      }
+
+      #run {
+        width: 70px;
+        height: 30px;
+      }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/ace-builds@1.23.4/css/ace.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.23.4/src-min-noconflict/ace.min.js"></script>
+    <script type="module">
+      import { init, runAndCollect } from '../dist/clang.js';
+
+      const codeEl = document.getElementById('code');
+      const aceEditor = ace.edit('editor');
+      aceEditor.setTheme('ace/theme/xcode');
+      aceEditor.getSession().setMode('ace/mode/c_cpp');
+      aceEditor.setOptions({
+        fontSize: '14px',
+      });
+
+      const buttonEl = document.getElementById('run');
+      const consoleEl = document.getElementById('console');
+
+      let isInitialed = false;
+      let isRunning = false;
+
+      let code = `
+        #include <iostream>
+        int main(){
+          std::cout << "Hello from clang.js page!" << std::endl;
+          return 0
+        }
+      `;
+
+      aceEditor.setValue(code);
+      aceEditor.getSelection().clearSelection();
+      aceEditor.getSession().on('change', () => {
+        code = aceEditor.getSession().getValue();
+      });
+      buttonEl.addEventListener('click', async () => {
+        if (isRunning) {
+          return;
+        }
+
+        isRunning = true;
+
+        while (consoleEl.firstChild) {
+          consoleEl.removeChild(consoleEl.firstChild);
+        }
+
+        if (!isInitialed) {
+          buttonEl.textContent = 'Fetching';
+          try {
+            await init({
+              // Serve dist/ at the site root; adjust if hosted under a subpath
+              path: location.origin + '/dist',
+            });
+          } catch (error) {
+            alert('Fetch Fail!' + error.message);
+            return;
+          }
+
+          isInitialed = true;
+        }
+        buttonEl.textContent = 'Running';
+
+        try {
+          const { output, success, error } = await runAndCollect(code);
+          const el = document.createElement('code');
+          el.textContent = success ? output : (output || error || 'Unknown error');
+          el.style.borderBottom = '1px solid #999';
+          consoleEl.appendChild(el);
+        } catch (e) {
+          // e is { output, error, success: false }
+          const el = document.createElement('code');
+          const out = (e && (e.output || e.error)) ? (e.output || e.error) : 'Compilation failed';
+          el.textContent = out;
+          el.style.borderBottom = '1px solid #999';
+          consoleEl.appendChild(el);
+        } finally {
+          setTimeout(() => {
+            buttonEl.textContent = 'Run';
+            isRunning = false;
+          }, 500);
+        }
+      });
+
+      // No console.log monkey patching needed in collect mode
+    </script>
+  </head>
+  <body>
+    <div id="container">
+      <div>
+        <p>Input C/C++ Code:</p>
+        <div id="editor" class="editor"></div>
+      </div>
+      <button id="run">Run</button>
+      <div>
+        <p>Output:</p>
+        <div id="console"></div>
+      </div>
+    </div>
+  </body>
+</html>
