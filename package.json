@@ -1,5 +1,5 @@
 {
-  "name": "clang.js",
+  "name": "@web/clangjs",
   "version": "0.1.1",
   "description": "Run C/C++ in the Browser.",
   "main": "dist/clang.cjs.js",
@@ -17,7 +17,7 @@
   "files": [
     "dist"
   ],
-  "author": "luoxuhai <darkce97@gmail.com> (https://github.com/luoxuhai)",
+  "author": "dilshadanikkadan (https://github.com/dilshadanikkadan/webClang)",
   "license": "Apache-2.0",
   "devDependencies": {
     "@rollup/plugin-replace": "^5.0.2",
